@@ -1,21 +1,18 @@
 const mysql = require('mysql2');
 const inquirer = require('inquirer');
-const consoleTable = require('console.table');
-
-// Connect to the database
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'password',
-    database: 'company_db'
-}).promise();
+const db = require('./db/connection');
+require('console.table');
 
 // Start the application after connecting to the database
 db.connect(err => {
-    if (err) throw err;
+    if (err) {
+        console.error('Error connecting to the database:', err);
+        process.exit(1); // Exit the application if a connection cannot be established
+    }
     console.log("Connected to the company_db database.");
-    mainMenu();
+    mainMenu(); // Proceed to show the main menu or start the application logic
 });
+
 
 // Main menu function
 function mainMenu() {
@@ -73,7 +70,7 @@ function mainMenu() {
 // View functions
 function viewAllDepartments() {
     db.query('SELECT * FROM department').then(([rows]) => {
-        consoleTable(rows);
+        console.table(rows);
         mainMenu();
     });
 }
@@ -166,67 +163,78 @@ function addRole() {
 }
 
 function addEmployee() {
-    // First, get the list of roles and managers to choose from
-    db.query('SELECT id, title FROM role', async (err, roles) => {
-        if (err) throw err;
+    // First, get the list of roles
+    db.query('SELECT id, title FROM role', (err, roles) => {
+        if (err) {
+            console.error('Error fetching roles:', err);
+            return mainMenu();
+        }
 
-        const roleChoices = roles
-            .map(({ id, title }) => ({
-                name: title,
-                value: id
-            }));
+        const roleChoices = roles.map(({ id, title }) => ({
+            name: title,
+            value: id
+        }));
 
-        const { roleId } = await inquirer.prompt([
+        inquirer.prompt([
             {
                 type: 'list',
                 name: 'roleId',
                 message: "What is the employee's role?",
                 choices: roleChoices
             }
-        ]);
+        ]).then(answer => {
+            const roleId = answer.roleId;
 
-        db.query('SELECT id, first_name, last_name FROM employee WHERE manager_id IS NULL', async (err, managers) => {
-            if (err) throw err;
-
-            const managerChoices = managers.map(({ id, first_name, last_name }) => ({
-                name: `${first_name} ${last_name}`,
-                value: id
-            }));
-
-            const answers = await inquirer.prompt([
-                {
-                    type: 'input',
-                    name: 'firstName',
-                    message: "What is the employee's first name?"
-                },
-                {
-                    type: 'input',
-                    name: 'lastName',
-                    message: "What is the employee's last name?"
-                },
-                {
-                    type: 'list',
-                    name: 'managerId',
-                    message: "Who is the employee's manager?",
-                    choices: managerChoices
+            // Next, get the list of potential managers
+            db.query('SELECT id, first_name, last_name FROM employee WHERE manager_id IS NULL', (err, managers) => {
+                if (err) {
+                    console.error('Error fetching managers:', err);
+                    return mainMenu();
                 }
-            ]);
 
-            db.query('INSERT INTO employee SET ?',
-                {
-                    first_name: answers.firstName,
-                    last_name: answers.lastName,
-                    role_id: roleId,
-                    manager_id: answers.managerId || null
-                },
-                (err, result) => {
-                    if (err) throw err;
-                    console.log(`Added ${answers.firstName} ${answers.lastName} to the database`);
-                    mainMenu();
+                const managerChoices = managers.map(({ id, first_name, last_name }) => ({
+                    name: `${first_name} ${last_name}`,
+                    value: id
+                }));
+
+                inquirer.prompt([
+                    {
+                        type: 'input',
+                        name: 'firstName',
+                        message: "What is the employee's first name?"
+                    },
+                    {
+                        type: 'input',
+                        name: 'lastName',
+                        message: "What is the employee's last name?"
+                    },
+                    {
+                        type: 'list',
+                        name: 'managerId',
+                        message: "Who is the employee's manager?",
+                        choices: managerChoices.length > 0 ? managerChoices : [{ name: 'No Manager', value: null }]
+                    }
+                ]).then(answers => {
+                    db.query('INSERT INTO employee SET ?', {
+                        first_name: answers.firstName,
+                        last_name: answers.lastName,
+                        role_id: roleId,
+                        manager_id: answers.managerId || null
+                    }, (err, result) => {
+                        if (err) {
+                            console.error('Error adding an employee:', err);
+                            return mainMenu();
+                        }
+                        console.log(`Added ${answers.firstName} ${answers.lastName} to the database`);
+                        mainMenu();
+                    });
                 });
+            });
         });
     });
 }
+
+
 
 function updateEmployeeRole() {
     db.query('SELECT id, first_name, last_name FROM employee', async (err, employees) => {
