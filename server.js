@@ -24,14 +24,16 @@ function mainMenu() {
             'View all departments',
             'View all roles',
             'View all employees',
+            'View employees by manager',
+            'View employees by department',
             'Add a department',
-            'Add a role',
             'Add an employee',
+            'Add a role',
             'Delete department',
             'Delete employee',
             'Delete role',
             'Update an employee role',
-            // Include other options like 'Delete department', 'View employees by manager', etc.
+            'Update employee manager',
             'Exit'
         ]
     }).then(answers => {
@@ -45,6 +47,12 @@ function mainMenu() {
             case 'View all employees':
                 viewAllEmployees();
                 break;
+            case 'View employees by manager':
+                viewEmployeesByManager();
+                break;
+            case 'View employees by department':
+                viewEmployeesByDepartment();
+                break;
             case 'Add a department':
                 addDepartment();
                 break;
@@ -54,9 +62,6 @@ function mainMenu() {
             case 'Add an employee':
                 addEmployee();
                 break;
-            case 'Update an employee role':
-                updateEmployeeRole();
-                break;
             case 'Delete department':
                 deleteDepartment();
                 break;
@@ -65,6 +70,12 @@ function mainMenu() {
                 break;
             case 'Delete role':
                 deleteRole();
+                break;
+            case 'Update an employee role':
+                updateEmployeeRole();
+                break;
+            case 'Update employee manager':
+                updateEmployeeManager();
                 break;
             case 'Exit':
                 db.end();
@@ -135,8 +146,6 @@ async function viewAllEmployees() {
 }
 
 
-
-// Add functions
 async function addDepartment() {
     try {
         const answer = await inquirer.prompt({
@@ -427,6 +436,109 @@ async function updateEmployeeRole() {
         console.log('Updated employee role in the database');
     } catch (error) {
         console.error('Error updating employee role:', error.message);
+    }
+    mainMenu();
+}
+
+async function updateEmployeeManager() {
+    try {
+        const [employees] = await db.query('SELECT id, first_name, last_name FROM employee');
+
+        const employeeChoices = employees.map(({ id, first_name, last_name }) => ({
+            name: `${first_name} ${last_name}`,
+            value: id
+        }));
+
+        const { employeeId } = await inquirer.prompt({
+            type: 'list',
+            name: 'employeeId',
+            message: "Select the employee whose manager you want to update:",
+            choices: employeeChoices
+        });
+
+        const managerChoices = employees.filter(({ id }) => id !== employeeId)
+            .map(({ id, first_name, last_name }) => ({
+                name: `${first_name} ${last_name}`,
+                value: id
+            }));
+
+        // Add an option for no manager
+        managerChoices.unshift({ name: 'None', value: null });
+
+        const { managerId } = await inquirer.prompt({
+            type: 'list',
+            name: 'managerId',
+            message: "Select the employee's new manager:",
+            choices: managerChoices
+        });
+
+        await db.query('UPDATE employee SET manager_id = ? WHERE id = ?', [managerId, employeeId]);
+
+        console.log('Employee manager updated successfully.');
+    } catch (error) {
+        console.error('Failed to update employee manager:', error.message);
+    }
+    mainMenu();
+}
+
+async function viewEmployeesByManager() {
+    try {
+        const [managers] = await db.query(`
+            SELECT id, first_name, last_name 
+            FROM employee 
+            WHERE id IN (SELECT DISTINCT manager_id FROM employee WHERE manager_id IS NOT NULL)`);
+
+        const managerChoices = managers.map(({ id, first_name, last_name }) => ({
+            name: `${first_name} ${last_name}`,
+            value: id
+        }));
+
+        const { managerId } = await inquirer.prompt({
+            type: 'list',
+            name: 'managerId',
+            message: "Select a manager to view their employees:",
+            choices: managerChoices
+        });
+
+        const [employees] = await db.query(`
+            SELECT id, first_name, last_name 
+            FROM employee 
+            WHERE manager_id = ?`,
+            managerId);
+
+        console.table(employees);
+    } catch (error) {
+        console.error('Failed to fetch employees by manager:', error.message);
+    }
+    mainMenu();
+}
+
+async function viewEmployeesByDepartment() {
+    try {
+        const [departments] = await db.query('SELECT id, name FROM department');
+
+        const departmentChoices = departments.map(({ id, name }) => ({
+            name,
+            value: id
+        }));
+
+        const { departmentId } = await inquirer.prompt({
+            type: 'list',
+            name: 'departmentId',
+            message: "Select a department to view its employees:",
+            choices: departmentChoices
+        });
+
+        const [employees] = await db.query(`
+            SELECT employee.id, employee.first_name, employee.last_name, role.title
+            FROM employee
+            JOIN role ON employee.role_id = role.id
+            WHERE role.department_id = ?`,
+            departmentId);
+
+        console.table(employees);
+    } catch (error) {
+        console.error('Failed to fetch employees by department:', error.message);
     }
     mainMenu();
 }
