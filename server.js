@@ -1,17 +1,34 @@
-const mysql = require('mysql2');
 const inquirer = require('inquirer');
 const db = require('./db/connection');
+const figlet = require('figlet');
+const chalk = require('chalk');
 require('console.table');
 
-// Start the application after connecting to the database
-db.connect(err => {
+figlet.text('Employee Tracker', {
+    font: 'Avatar',
+}, function (err, data) {
     if (err) {
-        console.error('Error connecting to the database:', err);
-        process.exit(1); // Exit the application if a connection cannot be established
+        console.log('Something went wrong...');
+        console.dir(err);
+        return;
     }
-    console.log("Connected to the company_db database.");
-    mainMenu(); // Proceed to show the main menu or start the application logic
+    console.log(chalk.blue(data));
 });
+
+// Start the application after connecting to the database
+async function checkConnectionAndStart() {
+    try {
+        await db.query('SELECT 1'); // Simple query to check connection
+        console.log("Connected to the company_db database.");
+        mainMenu(); // Proceed to show the main menu or start the application logic
+    } catch (err) {
+        console.error('Error connecting to the database:', err);
+        process.exit(1);
+    }
+}
+
+checkConnectionAndStart();
+
 
 
 // Main menu function
@@ -34,6 +51,7 @@ function mainMenu() {
             'Delete role',
             'Update an employee role',
             'Update employee manager',
+            'View Total Utilized Budget',
             'Exit'
         ]
     }).then(answers => {
@@ -76,6 +94,9 @@ function mainMenu() {
                 break;
             case 'Update employee manager':
                 updateEmployeeManager();
+                break;
+            case 'View Total Utilized Budget':
+                viewDepartmentBudget();
                 break;
             case 'Exit':
                 db.end();
@@ -543,7 +564,46 @@ async function viewEmployeesByDepartment() {
     mainMenu();
 }
 
+async function viewDepartmentBudget() {
+    try {
+        // First, fetch the list of departments to allow the user to select one
+        const [departments] = await db.query('SELECT id, name FROM department');
+
+        const departmentChoices = departments.map(department => ({
+            name: department.name,
+            value: department.id
+        }));
+
+        const { departmentId } = await inquirer.prompt({
+            type: 'list',
+            name: 'departmentId',
+            message: 'Select a department to view its total utilized budget:',
+            choices: departmentChoices
+        });
+
+        // Query to calculate the total budget of the selected department
+        const [results] = await db.query(`
+            SELECT d.name AS Department, SUM(r.salary) AS Total_Utilized_Budget
+            FROM employee e
+            JOIN role r ON e.role_id = r.id
+            JOIN department d ON r.department_id = d.id
+            WHERE d.id = ?
+            GROUP BY d.name`,
+            departmentId);
+
+        // If the department has employees, display the budget
+        if (results.length > 0) {
+            console.log(`Total utilized budget for ${results[0].Department}: $${results[0].Total_Utilized_Budget}`);
+        } else {
+            // This case handles departments with no employees or roles
+            console.log("This department currently has no employees or the data is unavailable.");
+        }
+    } catch (error) {
+        console.error('Failed to fetch the department budget:', error.message);
+    }
+    mainMenu();
+}
 
 
-// Start the application
-mainMenu();
+
+
