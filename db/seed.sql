@@ -10,7 +10,6 @@ INSERT INTO department (name) VALUES
 ('Finance');
 
 -- Insert sample roles
--- Note: Assuming salary is a DECIMAL type, you might need to adjust these values based on your exact DECIMAL configuration
 INSERT INTO role (title, salary, department_id) VALUES
 ('Software Engineer', 70000.00, 1),
 ('HR Manager', 65000.00, 2),
@@ -19,7 +18,6 @@ INSERT INTO role (title, salary, department_id) VALUES
 ('Accountant', 50000.00, 5);
 
 -- Insert sample employees
--- Note: For simplicity, assigning role_id based on the roles above; manager_id is left as NULL for top-level employees for this example
 INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES
 ('John', 'Doe', 1, NULL),
 ('Jane', 'Doe', 2, NULL),
