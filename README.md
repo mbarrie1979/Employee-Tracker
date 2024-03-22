@@ -54,7 +54,7 @@ Contributions are welcome. Please open an issue or submit a pull request with an
 
 ## Questions
 
-If you have any questions about the repo, open an issue or contact me directly. You can find more of my work at [Your-GitHub-Username](https://github.com/mbarrie1979/).
+If you have any questions about the repo, open an issue or contact me directly. You can find more of my work at [mbarrie1979](https://github.com/mbarrie1979/).
 
 
 
