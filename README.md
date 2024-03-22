@@ -39,15 +39,14 @@ This starts the application and presents a series of options to manage departmen
 
 ## Screenshots
 
-![Main Menu](link-to-your-screenshot)
+![Screenshot-1](./readme_screenshots/screenshot_1.png)
+![Screenshot-2](./readme_screenshots/screenshot_2.png)
+![Screenshot-3](./readme_screenshots/screenshot_3.png)
+![Screenshot-4](./readme_screenshots/screenshot_4.png)
 
 ## Walkthrough Video
 
-(Provide a link to your walkthrough video. You can upload your video to a platform like YouTube or Google Drive and share a link here.)
-
-Example:
-
-[Click here for the walkthrough video.](link-to-your-video)
+[Click here for the walkthrough video.](https://app.screencastify.com/v3/watch/vMKLDu6yMziy5p1eew5X)
 
 ## Contributing
 
@@ -55,7 +54,7 @@ Contributions are welcome. Please open an issue or submit a pull request with an
 
 ## Questions
 
-If you have any questions about the repo, open an issue or contact me directly. You can find more of my work at [Your-GitHub-Username](https://github.com/Your-GitHub-Username/).
+If you have any questions about the repo, open an issue or contact me directly. You can find more of my work at [Your-GitHub-Username](https://github.com/mbarrie1979/).
 
 
 
